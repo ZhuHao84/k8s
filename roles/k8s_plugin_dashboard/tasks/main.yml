@@ -1,0 +1,19 @@
+- name: 上传 dashboard 配置文件
+  copy: src=./files/ dest=/tmp/k8s-board-config/
+
+- name: 部署 kuboard
+  shell: '{{ item }}'
+  with_items:
+    - sed -i "s/KUBOARD_HOST/{{ kuboard.hosts }}/g" /tmp/k8s-board-config/kuboard.yaml
+    - kubectl apply -f /tmp/k8s-board-config/
+    - sleep 30
+  ignore_errors: yes
+
+- name: 生成 kuboard token
+  shell: "kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep kuboard-user | awk '{print $1}') | grep \"token:\""
+  register: kuboard_token
+  ignore_errors: yes
+
+- name:  kuboard 登录 token
+  debug: var=kuboard_token verbosity=0
+  ignore_errors: yes

@@ -1,0 +1,223 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: rocketmq
+    k8s.kuboard.cn/layer: cloud
+  name: rocketmq
+  namespace: default
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: rocketmq
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: rocketmq
+    spec:
+      containers:
+        - name: namesrv
+          args:
+            - /bin/sh
+            - mqnamesrv
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: MAX_POSSIBLE_HEAP
+              value: "1073741824"
+            - name: POD_NODE_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+          image: registry.cn-shenzhen.aliyuncs.com/lingxi-public/rocketmq:v4.4.2
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9876
+              name: namesrv
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          stdin: true
+          tty: true
+        - name: broker
+          args:
+            - /bin/sh
+            - /opt/rocketmq-4.4.0/bin/mqbroker
+            - -c
+            - /opt/rocketmq-4.4.0/conf/broker.properties
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: MAX_POSSIBLE_HEAP
+              value: "1073741824"
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+          image: registry.cn-shenzhen.aliyuncs.com/lingxi-public/rocketmq:v4.4.2
+          imagePullPolicy: Always
+          resources: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          stdin: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          tty: true
+          volumeMounts:
+            - mountPath: /opt/rocketmq-4.4.0/conf/broker.properties
+              name: broker-config
+              subPath: broker.properties
+        - name: rocket-admin
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: JAVA_OPTS
+              value: -Drocketmq.namesrv.addr=localhost:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false
+          image: registry.cn-shenzhen.aliyuncs.com/lingxi-public/rocketmq-console-ng:v4.4.2
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          stdin: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          tty: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - configMap:
+            defaultMode: 256
+            items:
+              - key: broker.conf
+                path: broker.properties
+            name: broker-config
+            optional: false
+          name: broker-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rocketmq-broker
+  namespace: default
+  labels:
+    app: rocketmq
+spec:
+  ports:
+    - name: rocketmq-broker
+      port: 10911
+      protocol: TCP
+      targetPort: 10911
+  selector:
+    app: rocketmq
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rocketmq-namesrv
+  namespace: default
+  labels:
+    app: rocketmq
+spec:
+  ports:
+    - name: rocketmq-namesrv
+      port: 9876
+      protocol: TCP
+      targetPort: 9876
+  selector:
+    app: rocketmq
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rocket-mq-admin
+  namespace: default
+  labels:
+    app: rocketmq
+spec:
+  ports:
+    - name: rocketmq-admin
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: rocketmq
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rocketmq-service
+  namespace: default
+  labels:
+    app: rocketmq
+spec:
+  clusterIP: None
+  ports:
+    - name: default
+      port: 42
+      protocol: TCP
+      targetPort: 42
+
+  selector:
+    app: rocketmq
+  type: ClusterIP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: rocketmq
+spec:
+  rules:
+    - host: TMP_ROCKET_ADMIN_HOST
+      http:
+        paths:
+          - backend:
+              serviceName: rocket-mq-admin
+              servicePort: 8080
+---
+apiVersion: v1
+data:
+  broker.conf: |-
+    brokerClusterName = DefaultCluster
+    brokerName = broker-a
+    autoCreateTopicEnable = true
+    brokerId = 0
+    deleteWhen = 04
+    fileReservedTime = 48
+    brokerRole = ASYNC_MASTER
+    flushDiskType = ASYNC_FLUSH
+    namesrvAddr = rocketmq-service.default.svc.cluster.local:9876
+kind: ConfigMap
+metadata:
+  labels:
+    app: rocketmq
+  name: broker-config
+  namespace: default

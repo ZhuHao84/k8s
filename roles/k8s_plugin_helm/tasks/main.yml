@@ -1,0 +1,11 @@
+- name: 拷贝 helm文件到服务器
+  copy: src=./files/helm dest=/usr/local/bin/helm
+
+- name: 部署 helm
+  shell: '{{ item }}'
+  with_items:
+    - export KUBECONFIG=/root/.kube/config
+    - chmod 777 /usr/local/bin/helm
+    - helm repo add stable https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+    - helm repo add apphub https://apphub.aliyuncs.com
+    - helm repo update

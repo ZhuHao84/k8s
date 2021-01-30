@@ -1,0 +1,25 @@
+- name: 配置 k8s仓库源
+  shell: "sudo tee /etc/yum.repos.d/kubernetes.repo <<<  '[kubernetes]
+      \nname=Kubernetes Repo
+      \nbaseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+      \ngpgcheck=0
+      \nenabled=1'"
+
+- name: 安装 kubeadm
+  yum:
+    name:
+      - kubelet-1.18.2
+      - kubeadm-1.18.2
+      - kubectl-1.18.2
+    state: present
+
+
+- name: 配置开机启动
+  service:
+    name: kubelet
+    state: started
+    enabled: true
+    daemon_reload: yes
+
+- name: 等待进程启动
+  shell: "sleep 20"

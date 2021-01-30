@@ -1,0 +1,31 @@
+- name: 配置镜像源
+  shell: "{{ item }}"
+  with_items:
+    - mkdir -p /etc/docker
+    - 'echo "{\"registry-mirrors\": [\"https://hcrueet9.mirror.aliyuncs.com\"],\"exec-opts\": [\"native.cgroupdriver=systemd\"]}" > /etc/docker/daemon.json'
+
+- name: 配置 docker 源
+  shell: '{{ item }}'
+  with_items:
+    - sudo yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+    - rm -rf /var/run/yum.pid
+
+- name: 安装 docker
+  yum:
+    name:
+      - docker-ce-18.06.1.ce-3.el7
+    state: latest
+
+- name: 配置开机启动
+  service: name=docker state=started enabled=true
+
+
+- name: 重新启动docker
+  systemd:
+    name: docker
+    state: restarted
+    enabled: true
+    daemon_reload: yes
+
+- name: 下载docker镜像
+  script: ./files/k8s-download-images.sh

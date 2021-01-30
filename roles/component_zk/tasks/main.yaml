@@ -1,0 +1,5 @@
+- name: 上传 zk 配置文件
+  copy: src=./files/ dest=/tmp/k8s-zk-config/
+
+- name: 部署 zk
+  shell: 'kubectl apply -f /tmp/k8s-zk-config/'

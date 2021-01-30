@@ -1,0 +1,94 @@
+- name: 修改本机hostname
+  shell: 'hostnamectl set-hostname {{ inventory_hostname }}'
+
+- name: 升级yum
+  shell: '{{ item }}'
+  with_items:
+    - rm -rf /var/run/yum.pid
+    - yum -y upgrade
+    - rm -rf /var/run/yum.pid
+
+- name: 安装基本工具
+  yum:
+    name:
+      - curl
+      - iptables
+      - ntpdate
+      - wget
+      - vim
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: latest
+  ignore_errors: yes
+- name: 拷贝网络配置文件
+  copy: src=./files/k8s.conf dest=/etc/sysctl.d/k8s.conf
+
+- name: 设置网络环境
+  shell: '{{ item }}'
+  with_items:
+    - modprobe br_netfilter
+    - sysctl -p /etc/sysctl.d/k8s.conf
+    - mkdir -p /var/lib/calico/
+    - echo "{{ k8s.apiserver.ip }} {{ k8s.apiserver.host }}" >> /etc/hosts #取配置文件中配置的 k8s.apiserver.ip 和host
+
+- name: 关闭防火墙
+  shell: '{{ item }}'
+  with_items:
+    - systemctl stop firewalld
+    - systemctl disable firewalld
+  ignore_errors: yes
+
+- name: 关闭swap
+  shell: '{{ item }}'
+  with_items:
+    - swapoff -a
+    - sed -i 's/.*swap.*/#&/' /etc/fstab
+  ignore_errors: yes
+
+- name: 关闭SELINUX
+  shell: '{{ item }}'
+  with_items:
+    - setenforce 0
+    - sed -i 's/^ *SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+  ignore_errors: yes
+
+
+- name: 同步系统时间
+  shell: '{{ item }}'
+  with_items:
+    - timedatectl set-timezone Asia/Shanghai
+    - ntpdate time.windows.com
+  ignore_errors: yes
+
+- name: 配置 master host
+  shell: "sudo tee -a /etc/hosts <<< '{{ hostvars[item][\"ansible_host\"] }} {{ item }}'"
+  with_items: "{{ groups['master'] }}"
+
+- name: 配置 node host
+  shell: "sudo tee -a /etc/hosts <<< '{{ hostvars[item][\"ansible_host\"] }} {{ item }}'"
+  with_items: "{{ groups['node'] }}"
+
+
+
+#ssh root@192.168.1.51 "echo \"net.ipv4.ip_forward=1 \nnet.bridge.bridge‐nf‐call‐iptables=1 \nnet.bridge.bridge‐nf‐call‐ip6tables=1 \nvm.swappiness=0 \nvm.max_map_count=655360\" >> /etc/security/limits.conf"
+#ssh root@192.168.1.51 "echo ‐e \"root soft nofile 65535\nroot hard nofile 65535\n* soft nofile 6 5535\n* hard nofile 65535\n\" >> /etc/security/limits.conf"
+#ssh root@192.168.1.51 "sed -i 's/4096/65535/g' /etc/security/limits.d/20-nproc.conf"
+#ssh root@192.168.1.55 "systemctl stmonop firewalld"
+#ssh root@192.168.1.55 "systemctl disable firewalld"
+#ssh root@192.168.1.55 "setenforce 0"
+#ssh root@192.168.1.55 "sed -i 's/^ *SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config"
+#ssh root@192.168.1.55 "timedatectl set-timezone Asia/Shanghai"
+#ssh root@192.168.1.55 "ntpdate time.windows.com"
+#ssh root@192.168.1.55 "echo '{\"registry-mirrors\":[\"https://hcrueet9.mirror.aliyuncs.com\"],\"exec-opts\":[\"native.cgroupdriver=systemd\"],\"group\":\"docker\"}' > /etc/docker/daemon.json"
+#ssh root@192.168.1.55 "sed -i 's/#AllowTcpForwarding yes/AllowTcpForwarding yes/g' /etc/ssh/sshd_config"
+
+#sudo wget http://rancher‐mirror.cnrancher.com/rke/v1.2.3/rke_linux‐amd64
+#sudo mv rke_linux‐amd64 rke
+#sudo chmod +x rke
+#sudo mv rke /usr/local/sbin
+#ssh root@192.168.1.51 "kubeadm init --control-plane-endpoint=apiserver.k8s --image-repository registry.cn-hangzhou.aliyuncs.com/google_containers --kubernetes-version v1.18.2 --service-cidr=10.1.0.0/16 --pod-network-cidr=10.244.0.0/16"
+#ssh root@192.168.1.53 "kubeadm join 192.168.1.51:6443 --token 4ec8tc.totk5okv6qq9rm6m --discovery-token-ca-cert-hash sha256:b8af4faf54c6ccdc0a9e2ca31f5988b05fa2c12e0897a6a0eede0bb174ca15f8 --control-plane"
+#ssh root@192.168.1.51 "rm -rf ~/.kube/; rm -rf /etc/kubernetes/;rm -rf /etc/systemd/system/kubelet.service.d;rm -rf /etc/systemd/system/kubelet.service;rm -rf /usr/bin/kube*;rm -rf /etc/cni;rm -rf /opt/cni;rm -rf /var/lib/etcd;rm -rf /var/etcd;yum clean all;yum remove kube*;"
+#ssh root@192.168.1.51 "rm -rf /etc/docker/daemon.json; yum remove docker -y"
+#sudo docker run --privileged -d --restart=unless-stopped -p 80:80 -p 443:443 -v /data/rancher:/var/lib/rancher/ rancher/rancher:stable

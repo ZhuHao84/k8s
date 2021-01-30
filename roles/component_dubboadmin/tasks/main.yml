@@ -1,0 +1,15 @@
+- name: 拷贝dubboadmin配置文件
+  copy: src=./files/ dest=/tmp/k8s-dubboadmin-configs/
+
+- name: 修改dubboadmin配置
+  shell: "{{ item }}"
+  with_items:
+    - sed -i "s/TMP_DUBBO_ADMIN_REGITSTRY_ADDRESS/{{ dubboadmin.register.address }}/g" /tmp/k8s-dubboadmin-configs/dubboadmin.yaml
+    - sed -i "s/TMP_DUBBO_ADMIN_CONFIG_CENTER/{{ dubboadmin.config.center }}/g" /tmp/k8s-dubboadmin-configs/dubboadmin.yaml
+    - sed -i "s/TMP_DUBBO_ADMIN_METADATA_REPORT_ADDRESS/{{ dubboadmin.metadata_report.address }}/g" /tmp/k8s-dubboadmin-configs/dubboadmin.yaml
+    - sed -i "s/TMP_DUBBO_ADMIN_HOST/{{ dubboadmin.host.name }}/g" /tmp/k8s-dubboadmin-configs/dubboadmin.yaml
+
+- name: 部署dubboadmin
+  shell: '{{ item }}'
+  with_items:
+    - kubectl apply -f /tmp/k8s-dubboadmin-configs/dubboadmin.yaml

@@ -1,0 +1,14 @@
+- name: 修改 metrics 配置
+  copy: src=./files/ dest=/tmp/metrics-configs/
+
+- name: 为 master 添加label
+  shell: "kubectl label nodes {{ item }} metrics=yes --overwrite=true"
+  with_items: "{{ groups['master'] }}"
+  ignore_errors: yes
+- name: 为 node 添加label
+  shell: "kubectl label nodes {{ item }} metrics=yes --overwrite=true"
+  with_items: "{{ groups['node'] }}"
+  ignore_errors: yes
+
+- name: 部署 metrics
+  shell: 'kubectl create -f /tmp/metrics-configs/'

@@ -1,0 +1,47 @@
+#master分组下第一台机器作为主控安装机器
+- hosts: master[0]
+  vars_files: ../configs/install_config.yml
+  roles:
+    - ../roles/common
+    - ../roles/common_docker
+    - ../roles/k8s_kubelet
+    - ../roles/k8s_master
+    - ../roles/k8s_net_work
+#master分组下后续机器作为从机
+- hosts: master[1:10]
+  vars_files: ../configs/install_config.yml
+  #  master从机加入集群时串行处理
+  serial: 1
+  roles:
+    - ../roles/common
+    - ../roles/common_docker
+    - ../roles/k8s_kubelet
+    - ../roles/k8s_slave
+# node下的机器作为工作节点机器,加入集群
+- hosts: node
+  vars_files: ../configs/install_config.yml
+  serial: 1
+  roles:
+    - ../roles/common
+    - ../roles/common_docker
+    - ../roles/k8s_kubelet
+    - ../roles/k8s_node
+# 主控机上部署基本工具
+- hosts: master[0]
+  vars_files: ../configs/install_config.yml
+  roles:
+    - ../roles/k8s_plugin_metrics
+    - ../roles/k8s_plugin_ingress
+    - ../roles/k8s_plugin_helm
+    - ../roles/k8s_plugin_nfs_master
+    - ../roles/k8s_plugin_dashboard
+# 从机上安装nfs
+- hosts: master[1:10]
+  vars_files: ../configs/install_config.yml
+  roles:
+    - ../roles/k8s_plugin_nfs_node
+# 工作节点机器上安装nfs
+- hosts: node
+  vars_files: ../configs/install_config.yml
+  roles:
+    - ../roles/k8s_plugin_nfs_node

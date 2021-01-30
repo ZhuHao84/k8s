@@ -1,0 +1,13 @@
+- name: 拷贝网络配置文件
+  copy: src=./files/ dest=/tmp/flannel-configs/
+
+- name: 安装flannel网络
+  shell: '{{ item }}'
+  with_items:
+    - kubectl apply -f /tmp/flannel-configs/
+#    -
+#- name: 安装Calico网络
+#  shell: '{{ item }}'
+#  with_items:
+#    - mkdir -p /var/lib/calico/
+#    - kubectl apply -f https://docs.projectcalico.org/v3.11/manifests/calico.yaml

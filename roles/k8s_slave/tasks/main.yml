@@ -1,0 +1,26 @@
+- set_fact: k8s_join_master_certs_scripts={{ hostvars[groups['master'][0]]['k8s_join_master_certs_scripts'] }}
+- set_fact: k8s_join_token_script={{ hostvars[groups['master'][0]]['k8s_join_token_script'] }}
+
+- name: slave Join kubernetes cluster
+  shell: "{{ k8s_join_token_script }} --control-plane --certificate-key {{ k8s_join_master_certs_scripts }}"
+  ignore_errors: yes
+#- name: 拷贝k8s配置文件
+#  synchronize:
+#    src: /etc/kubernetes/admin.conf
+#    dest: /etc/kubernetes/admin.conf
+#  delegate_to: "{{ hostvars[groups['master'][0]]['ansible_default_ipv4']['address'] }}"
+#  ignore_errors: yes
+#
+#- name: 拷贝k8s配置文件
+#  synchronize:
+#    src: /etc/kubernetes/manifests/kube-apiserver.yaml
+#    dest: /etc/kubernetes/manifests/kube-apiserver.yaml
+#  delegate_to: "{{ hostvars[groups['master'][0]]['ansible_default_ipv4']['address'] }}"
+#  ignore_errors: yes
+#
+#- name: 设置k8s配置文件
+#  shell: '{{ item }}'
+#  with_items:
+#    - echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >>~/.bash_profile
+#    - source ~/.bash_profile
+#  ignore_errors: yes

@@ -1,0 +1,16 @@
+- name: 拷贝ingress配置文件
+  copy: src=./files/ dest=/tmp/ingress-config/
+
+- name: 为 master 添加label
+  shell: "kubectl label nodes {{ item }} custom/ingress_controller_ready=true --overwrite=true"
+  with_items: "{{ groups['node'] }}"
+
+- name: 部署ingress controller
+  shell: '{{ item }}'
+  with_items:
+    - kubectl apply -f /tmp/ingress-config/default-backend.yaml
+    - kubectl apply -f /tmp/ingress-config/configmap.yaml
+    - kubectl apply -f /tmp/ingress-config/tcp-services-configmap.yaml
+    - kubectl apply -f /tmp/ingress-config/udp-services-configmap.yaml
+    - kubectl apply -f /tmp/ingress-config/rbac.yaml
+    - kubectl apply -f /tmp/ingress-config/with-rbac.yaml

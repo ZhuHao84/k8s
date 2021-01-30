@@ -1,0 +1,33 @@
+- name: Exec kubeadm init
+  shell: "kubeadm init --control-plane-endpoint={{ k8s.apiserver.host }} --image-repository registry.cn-hangzhou.aliyuncs.com/google_containers --kubernetes-version v1.18.2 --service-cidr=10.1.0.0/16 --pod-network-cidr=10.244.0.0/16"
+
+- name: 设置k8s配置文件
+  shell: '{{ item }}'
+  with_items:
+    - echo "" >> /etc/kubernetes/manifests/kube-apiserver.yaml
+    - echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >>~/.bash_profile
+    - source ~/.bash_profile
+    - mkdir -p $HOME/.kube
+    - sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    - sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+- name: 生成master密钥
+  shell: 'kubeadm init phase upload-certs --upload-certs > /tmp/k8s_certs.txt  2>&1'
+
+- name: 读取master密钥
+  shell: 'echo $(tail -1 /tmp/k8s_certs.txt)'
+  register: k8s_join_master_certs
+
+- set_fact:
+    k8s_join_master_certs_scripts: "{{ k8s_join_master_certs.stdout }}"
+
+- name:  master密钥
+  debug: var=k8s_join_master_certs_scripts verbosity=0
+
+- name: 生成加入集群命令
+  shell: kubeadm token create --print-join-command
+  register: k8s_join_token
+
+- set_fact:
+    k8s_join_token_script: "{{ k8s_join_token.stdout }}"

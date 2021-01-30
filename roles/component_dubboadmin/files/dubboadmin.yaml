@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dubbo-admin
+  namespace: default
+  labels:
+    app: dubbo-admin
+    k8s.kuboard.cn/layer: monitor
+spec:
+  selector:
+    matchLabels:
+      app: dubbo-admin
+  #启用的实例数量
+  replicas: 1
+  #从容器启动到应用正常提供服务时间,单位秒
+  minReadySeconds: 30
+  #创建实例策略
+  strategy:
+    #滚动更新
+    type: RollingUpdate
+    rollingUpdate:
+      #更新时允许最大激增的容器数
+      maxSurge: 1
+      #更新时允许最大不可用容器数
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: dubbo-admin
+        tier: dubbo-admin
+    spec:
+      #     指定调度到master机器
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      #     指定调度到master机器结束
+      containers:
+        - name: dubbo-admin
+          image: apache/dubbo-admin
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: dubbo-admin
+          env:
+            - name: admin.registry.address
+              value: TMP_DUBBO_ADMIN_REGITSTRY_ADDRESS
+            - name: admin.config-center
+              value: TMP_DUBBO_ADMIN_CONFIG_CENTER
+            - name: admin.metadata-report.address
+              value: TMP_DUBBO_ADMIN_METADATA_REPORT_ADDRESS
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dubbo-admin
+  namespace: default
+  labels:
+    app: dubbo-admin
+spec:
+  type: ClusterIP
+  ports:
+    #服务间访问的端口
+    - port: 8080
+      #容器暴露的端口
+      targetPort: 8080
+  selector:
+    app: dubbo-admin
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: dubbo-admin
+  namespace: default
+spec:
+  rules:
+    - host: TMP_DUBBO_ADMIN_HOST
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: dubbo-admin
+              servicePort: 8080

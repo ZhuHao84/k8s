@@ -1,0 +1,22 @@
+- name: 拷贝nacos配置文件
+  copy: src=./files/ dest=/tmp/k8s-nacos-configs/
+
+- name: 创建nfs目录
+  file: path=/data/nacos state=directory
+
+- name: 修改nacos配置
+  shell: "{{ item }}"
+  with_items:
+    - sed -i "s/TMP_MYSQL_HOST/{{ nacos.mysql.db.host }}/g" /tmp/k8s-nacos-configs/nacos-config.yaml
+    - sed -i "s/TMP_MYSQL_PORT/{{ nacos.mysql.db.port }}/g" /tmp/k8s-nacos-configs/nacos-config.yaml
+    - sed -i "s/TMP_MYSQL_DB_NAME/{{ nacos.mysql.db.name }}/g" /tmp/k8s-nacos-configs/nacos-config.yaml
+    - sed -i "s/TMP_MYSQL_USER/{{ nacos.mysql.db.user }}/g" /tmp/k8s-nacos-configs/nacos-config.yaml
+    - sed -i "s/TMP_MYSQL_PASSWORD/{{ nacos.mysql.db.password }}/g" /tmp/k8s-nacos-configs/nacos-config.yaml
+    - sed -i "s/TMP_NACOS_HOST_NAME/{{ nacos.host.name }}/g" /tmp/k8s-nacos-configs/nacos-service.yaml
+
+- name: 部署nacos
+  shell: '{{ item }}'
+  with_items:
+    - kubectl apply -f /tmp/k8s-nacos-configs/nacos-config.yaml
+    - kubectl apply -f /tmp/k8s-nacos-configs/nacos-service.yaml
+    - kubectl apply -f /tmp/k8s-nacos-configs/nacos-init.yaml

@@ -1,0 +1,24 @@
+- name: 清理yum进程
+  shell: '{{ item }}'
+  with_items:
+    - rm -rf /var/run/yum.pid
+
+- name: 安装 nfs
+  yum:
+    name:
+      - nfs-utils
+      - rpcbind
+    state: latest
+
+- name: 创建共享目录
+  file: path=/data state=directory
+
+- name: 配置共享目录
+  shell: "mount -t nfs {{ nfs.server }}:/data /data"
+
+
+- name: 启动nfs服务
+  service: name='{{ item }}' state=started enabled=true
+  with_items:
+    - rpcbind
+    - nfs

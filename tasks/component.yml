@@ -1,0 +1,5 @@
+
+- hosts: master
+  vars_files: ../configs/component_config.yml
+  roles:
+    - ../roles/component_mysql 

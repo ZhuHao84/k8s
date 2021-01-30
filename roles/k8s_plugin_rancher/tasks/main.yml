@@ -1,0 +1,12 @@
+- set_fact: k8s_join_token_script={{ hostvars[groups['master'][0]]['k8s_join_token_script'] }}
+
+- name: Join kubernetes cluster
+  shell: "{{ k8s_join_token_script }}"
+  when: k8s_join_token_script is defined
+
+- name: 设置k8s配置文件
+  shell: '{{ item }}'
+  with_items:
+    - source ~/.bash_profile
+
+

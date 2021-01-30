@@ -1,0 +1,5 @@
+- name: 上传 redis 配置文件
+  copy: src=./files/ dest=/tmp/k8s-redis-config/
+
+- name: 部署 redis
+  shell: 'kubectl apply -f /tmp/k8s-redis-config/'

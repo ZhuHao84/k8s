@@ -1,0 +1,17 @@
+- name: 拷贝xxl-job配置文件
+  copy: src=./files/ dest=/tmp/k8s-xxljob-configs/
+
+- name: 修改xxl-job配置
+  shell: "{{ item }}"
+  with_items:
+    - sed -i "s/TMP_XXL_JOB_MYSQL_HOST/{{ xxljob.mysql.db.host }}/g" /tmp/k8s-xxljob-configs/xxl_job.yaml
+    - sed -i "s/TMP_XXL_JOB_MYSQL_PORT/{{ xxljob.mysql.db.port }}/g" /tmp/k8s-xxljob-configs/xxl_job.yaml
+    - sed -i "s/TMP_XXL_JOB_MYSQL_DB_NAME/{{ xxljob.mysql.db.name }}/g" /tmp/k8s-xxljob-configs/xxl_job.yaml
+    - sed -i "s/TMP_XXL_JOB_MYSQL_USER/{{ xxljob.mysql.db.user }}/g" /tmp/k8s-xxljob-configs/xxl_job.yaml
+    - sed -i "s/TMP_XXL_JOB_MYSQL_PASSWORD/{{ xxljob.mysql.db.password }}/g" /tmp/k8s-xxljob-configs/xxl_job.yaml
+    - sed -i "s/TMP_XXL_JOB_HOST_NAME/{{ xxljob.host.name }}/g" /tmp/k8s-xxljob-configs/xxl_job.yaml
+
+- name: 部署xxl-job
+  shell: '{{ item }}'
+  with_items:
+    - kubectl apply -f /tmp/k8s-xxljob-configs/xxl_job.yaml

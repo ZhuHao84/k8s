@@ -1,0 +1,13 @@
+- name: 拷贝rocketmq配置文件
+  copy: src=./files/ dest=/tmp/k8s-rocketmq-configs/
+
+
+- name: 修改rocketmq配置
+  shell: "{{ item }}"
+  with_items:
+    - sed -i "s/TMP_ROCKET_ADMIN_HOST/{{ rocketmq.host.name }}/g" /tmp/k8s-rocketmq-configs/rocketmq.yaml
+
+- name: 部署rocketmq
+  shell: '{{ item }}'
+  with_items:
+    - kubectl apply -f /tmp/k8s-rocketmq-configs/rocketmq.yaml

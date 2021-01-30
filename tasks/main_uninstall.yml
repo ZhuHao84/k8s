@@ -1,0 +1,4 @@
+# node下的机器作为工作节点机器,加入集群
+- hosts: node
+  roles:
+    - ../roles/uninstall

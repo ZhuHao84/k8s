@@ -1,0 +1,5 @@
+- name: 上传 es 配置文件
+  copy: src=./files/ dest=/tmp/k8s-es-config/
+
+- name: 部署 es
+  shell: 'kubectl apply -f /tmp/k8s-es-config/'

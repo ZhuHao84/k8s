@@ -1,0 +1,10 @@
+- name: 上传 mysql 配置文件
+  copy: src=./files/ dest=/tmp/k8s-mysql-config/
+
+- name: 修改mysql配置文件
+  shell: "{{ item }}"
+  with_items:
+    - sed -i "s/TMP_MYSQL_ROOT_PASSWORD/{{ mysql.root.password }}/g" /tmp/k8s-mysql-config/mysql.yml
+
+- name: 部署 mysql
+  shell: 'kubectl apply -f /tmp/k8s-mysql-config/'
