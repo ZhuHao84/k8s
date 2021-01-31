@@ -31,7 +31,7 @@
   copy: src=./files/ dest=/tmp/nfs-configs/
 
 - name: 配置设置服务器ip
-  shell: "sed -i \"s/NFS_SERVER_HOST/{{ nfs.server }}/g\" /tmp/nfs-configs/deloyment.yaml"
+  shell: "sed -i \"s/NFS_SERVER_HOST/{{ nfs.server.host }}/g\" /tmp/nfs-configs/deloyment.yaml"
 
 - name: 部署nfs服务
   shell: '{{ item }}'

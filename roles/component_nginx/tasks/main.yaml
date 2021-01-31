@@ -1,0 +1,13 @@
+- name: 上传 nginx 配置文件
+  copy: src=./files/ dest=/tmp/k8s-nginx-config/
+
+- name: 修改 nginx 配置文件
+  shell: "{{ item }}"
+  with_items:
+    - sed -i "s/TMP_NGINX_LISTEN_HOST/{{ nginx.listen.host }}/g" /tmp/k8s-nginx-config/nginx_config.yaml
+    - sed -i "s/TMP_NGINX_LISTEN_HOST/{{ nginx.listen.host }}/g" /tmp/k8s-nginx-config/nginx_service.yaml
+    - sed -i "s/TMP_NGINX_NFS_SERVER_ADDRESS/{{ nginx.nfs.server.address }}/g" /tmp/k8s-nginx-config/nginx_pv.yaml
+    - sed -i "s/TMP_NGINX_NFS_SERVER_DIR/{{ nginx.nfs.server.dir }}/g" /tmp/k8s-nginx-config/nginx_pv.yaml
+
+- name: 部署 nginx
+  shell: 'kubectl apply -f /tmp/k8s-nginx-config/'

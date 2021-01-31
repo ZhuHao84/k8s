@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment     #资源类型
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 2        #副本数
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx2
+          image: nginx:1.15.4
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-web-data    #自定义的名字和下面保持一致
+              mountPath: /usr/share/nginx/html   # nginx 的首页站点目录，挂载点
+
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - metadata:
+          name: nginx-web-data
+          persistentVolumeClaim:
+            claimName: nginx-web-pvc
+        - name: nginx-config
+          configMap:
+            name: nginx-cm
+            items:
+              - key: nginx_conf
+                path: nginx.conf
+      restartPolicy: Always    #重启策略
+---

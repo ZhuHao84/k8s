@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: nginx-ingress-controller
   namespace: default
+  labels:
+    k8s.kuboard.cn/layer: cloud
 spec:
   replicas: 1
   selector:

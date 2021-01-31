@@ -14,7 +14,7 @@
   file: path=/data state=directory
 
 - name: 配置共享目录
-  shell: "mount -t nfs {{ nfs.server }}:/data /data"
+  shell: "mount -t nfs {{ nfs.server.host }}:/data /data"
 
 
 - name: 启动nfs服务

@@ -4,6 +4,7 @@ metadata:
   name: default-http-backend
   labels:
     app: default-http-backend
+    k8s.kuboard.cn/layer: cloud
   namespace: default
 spec:
   replicas: 1

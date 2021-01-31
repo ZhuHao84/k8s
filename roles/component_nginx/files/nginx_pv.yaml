@@ -1,0 +1,28 @@
+# 创建pvc
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nginx-web-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nginx-web
+  nfs:
+    path: TMP_NGINX_NFS_SERVER_DIR
+    server: TMP_NGINX_NFS_SERVER_ADDRESS
+---
+# 创建pvc
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-web-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: nginx-web

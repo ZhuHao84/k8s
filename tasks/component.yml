@@ -1,5 +1,10 @@
 
-- hosts: master
+- hosts: nfs-master
   vars_files: ../configs/component_config.yml
   roles:
-    - ../roles/component_mysql 
+    - ../roles/component_nfs_master
+- hosts: nfs-node
+  vars_files: ../configs/component_config.yml
+  roles:
+    - ../roles/component_nfs_node
+    

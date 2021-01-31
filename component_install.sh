@@ -2,6 +2,10 @@
 #k8s master机器ip
 K8S_MASTERS="172.31.2.112"
 
+#nfs相关配置
+NFS_SERVER_HOST="172.31.2.112"
+NFS_NODES=(172.31.2.113)
+
 #mysql相关配置
 #mysql的root账号登录密码
 TMP_MYSQL_ROOT_PASSWORD="zhuhao123"
@@ -33,6 +37,16 @@ TMP_XXL_JOB_MYSQL_DB_NAME="xxl_job"
 TMP_XXL_JOB_MYSQL_USER="root"
 TMP_XXL_JOB_MYSQL_PASSWORD="123"
 TMP_XXL_JOB_HOST_NAME="job.zhuhao.com"
+
+#nginx相关配置
+#nginx默认监听的域名,安装完毕后可通过k8s中的configMap,nginx-cm修改
+TMP_NGINX_LISTEN_HOST="www.zhuhao.com"
+#nfs服务器地址,用来存放web文件的机器
+#如果是使用本脚本安装的集群,服务器地址即安装集群时配置的nfs地址
+TMP_NGINX_NFS_SERVER_ADDRESS="192.168.1.51"
+#web文件存放的目录
+TMP_NGINX_NFS_SERVER_dir="/data/web"
+
 #--------------------------------------需配置内容结束-------------------------------------------
 #带颜色打印
 function print() {
@@ -52,6 +66,15 @@ function createEnvFile() {
   echo "[master]" >./configs/component_env
   echo "k8s-master-1  ansible_host=${K8S_MASTERS}" >>./configs/component_env
 
+  echo "[nfs-master]" >>./configs/component_env
+  echo "nfs-master-1  ansible_host=${NFS_SERVER_HOST}" >>./configs/component_env
+
+  echo "[nfs-node]" >>./configs/component_env
+  index=1
+  for item in ${NFS_NODES[@]}; do
+    echo "nfs-node-${index}  ansible_host=${item}" >>./configs/component_env
+    let index+=1
+  done
 }
 #生成组件所需配置文件
 function createConfigFile() {
@@ -62,6 +85,10 @@ function createConfigFile() {
 mysql:
   root:
     password: ${TMP_MYSQL_ROOT_PASSWORD}
+#nfs相关配置
+nfs:
+  server:
+    host: ${NFS_SERVER_HOST}
 
 #nacos相关配置
 nacos:
@@ -100,7 +127,18 @@ dubboadmin:
   metadata_report:
     address: ${TMP_DUBBO_ADMIN_METADATA_REPORT_ADDRESS}
   host:
-    name: ${TMP_DUBBO_ADMIN_HOST}" >./configs/component_config.yml
+    name: ${TMP_DUBBO_ADMIN_HOST}
+
+#nginx相关配置
+nginx:
+  listen:
+    host: ${TMP_NGINX_LISTEN_HOST}
+  nfs:
+    server:
+      address: ${TMP_NGINX_NFS_SERVER_ADDRESS}
+      dir: ${TMP_NGINX_NFS_SERVER_DIR}
+    " >./configs/component_config.yml
+
 }
 
 function createTaskFile() {
@@ -112,6 +150,20 @@ function createTaskFile() {
   vars_files: ../configs/component_config.yml
   roles:
     - ../roles/${MATHED} " >./tasks/component.yml
+}
+function createNfsTaskFile() {
+  rm -rf ./tasks/component.yml
+  touch ./tasks/component.yml
+  echo "
+- hosts: nfs-master
+  vars_files: ../configs/component_config.yml
+  roles:
+    - ../roles/component_nfs_master
+- hosts: nfs-node
+  vars_files: ../configs/component_config.yml
+  roles:
+    - ../roles/component_nfs_node
+    " >./tasks/component.yml
 }
 function runInstall() {
   createEnvFile
@@ -226,20 +278,61 @@ function installXxlJob() {
     ;;
   esac
 }
+function installNginx() {
+  print "安装nginx至k8s,配置如下:"
+  print "监听域名:            ${TMP_NGINX_LISTEN_HOST}"
+  print "web文件存放机器Ip:    ${TMP_NGINX_NFS_SERVER_ADDRESS}"
+  print "web文件存放目录:      ${TMP_NGINX_NFS_SERVER_DIR}"
+  print "是否确认继续?         y=继续,n=取消"
+  read input
+  case $input in
+  y)
+    print "安装nginx"
+    runInstall component_nginx
+    checkStatus "安装nginx"
+    print "nginx安装成功 集群外访问方式${TMP_NGINX_LISTEN_HOST}"
+    ;;
+  n)
+    exit 0
+    ;;
+  esac
+}
+installNfs() {
+  print "安装nfs至k8s,配置如下:"
+  print "nfs master服务器地址:            ${NFS_SERVER_HOST}"
+  print "nfs node节点:                   ${NFS_NODES[*]}"
+  print "是否确认继续?         y=继续,n=取消"
+  read input
+  case $input in
+  y)
+    print "安装nfs"
+    createEnvFile
+    createConfigFile
+    createNfsTaskFile
+    ansible-playbook -i ./configs/component_env -u root ./tasks/component.yml --forks=1
+    checkStatus "安装nfs"
+    print "nfs安装成功"
+    ;;
+  n)
+    exit 0
+    ;;
+  esac
+}
 function dispatchMethod() {
   if [ -z "$1" ]; then
     print "本脚本用于部署组件至K8S"
     print "使用前请确保已在本脚本中配置了各组件必备参数"
     print "命令菜单列表:"
     print " 输入 0 或 exit        退出脚本"
-    print " 输入 1 或 mysql       安装mysql"
-    print " 输入 2 或 redis       安装redis"
-    print " 输入 3 或 nacos       安装nacos"
-    print " 输入 4 或 rocketmq    安装rocketmq"
-    print " 输入 5 或 zk          安装zk"
-    print " 输入 6 或 es          安装es"
-    print " 输入 7 或 dubboAdmin  安装dubboAdmin"
-    print " 输入 8 或 xxljob      安装xxl-job"
+    print " 输入 1 或 nfs         安装nfs"
+    print " 输入 2 或 mysql       安装mysql"
+    print " 输入 3 或 redis       安装redis"
+    print " 输入 4 或 nacos       安装nacos"
+    print " 输入 5 或 rocketmq    安装rocketmq"
+    print " 输入 6 或 zk          安装zk"
+    print " 输入 7 或 es          安装es"
+    print " 输入 8 或 dubboAdmin  安装dubboAdmin"
+    print " 输入 9 或 xxljob      安装xxl-job"
     print " 输入其他任意值          打印菜单"
     print "请输入要执行的方法名称:"
     read input
@@ -247,28 +340,34 @@ function dispatchMethod() {
   else
     case $1 in
     1 | mysql)
+      installNfs
+      ;;
+    2 | mysql)
       installMysql
       ;;
-    2 | redis)
+    3 | redis)
       installRedis
       ;;
-    3 | nacos)
+    4 | nacos)
       installNacos
       ;;
-    4 | rocketmq)
+    5 | rocketmq)
       installRocketMq
       ;;
-    5 | zk)
+    6 | zk)
       installZk
       ;;
-    6 | es)
+    7 | es)
       installEs
       ;;
-    7 | dubboAdmin)
+    8 | dubboAdmin)
       installDubboAdmin
       ;;
-    8 | xxljob)
+    9 | xxljob)
       installXxlJob
+      ;;
+    10 | nginx)
+      installNginx
       ;;
     0 | exit)
       exit 0
