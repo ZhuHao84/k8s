@@ -1,0 +1,5 @@
+/configs/component_config.yml
+/configs/component_env
+/configs/install_config.yml
+/configs/install_env
+/configs/uninstall_env

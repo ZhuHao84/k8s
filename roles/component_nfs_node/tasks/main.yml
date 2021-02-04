@@ -15,7 +15,7 @@
 
 - name: 配置共享目录
   shell: "mount -t nfs {{ nfs.server.host }}:/data /data"
-
+  ignore_errors: yes
 
 - name: 启动nfs服务
   service: name='{{ item }}' state=started enabled=true

@@ -39,3 +39,7 @@
 >2.修改component_install.sh脚本中的配置
 
 >3.执行component_install.sh
+
+
+# 下一版本迭代计划
+> 安装组件时,支持自定义命名空间

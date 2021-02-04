@@ -27,6 +27,7 @@
 - name: 设置网络环境
   shell: '{{ item }}'
   with_items:
+    - echo "net.ipv4.tcp_fin_timeout= 30" >> /etc/sysctl.conf
     - modprobe br_netfilter
     - sysctl -p /etc/sysctl.d/k8s.conf
     - mkdir -p /var/lib/calico/

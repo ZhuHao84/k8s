@@ -4,7 +4,6 @@
 - name: 设置k8s配置文件
   shell: '{{ item }}'
   with_items:
-    - echo "" >> /etc/kubernetes/manifests/kube-apiserver.yaml
     - echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >>~/.bash_profile
     - source ~/.bash_profile
     - mkdir -p $HOME/.kube
@@ -21,6 +20,16 @@
 
 - set_fact:
     k8s_join_master_certs_scripts: "{{ k8s_join_master_certs.stdout }}"
+
+#- name: 拷贝config文件用来配置其他slave
+#  fetch:
+#    src: /etc/kubernetes/admin.conf
+#    dest: ../configs/
+#
+#- name: 拷贝config文件用来配置其他slave
+#  fetch:
+#    src: /etc/kubernetes/manifests/kube-apiserver.yaml
+#    dest: ../configs/
 
 - name:  master密钥
   debug: var=k8s_join_master_certs_scripts verbosity=0

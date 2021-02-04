@@ -37,3 +37,4 @@
   shell: '{{ item }}'
   with_items:
     - kubectl apply -f /tmp/nfs-configs/
+  ignore_errors: yes

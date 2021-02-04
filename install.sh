@@ -1,26 +1,24 @@
+source ./tools.sh
 #--------------------------------------需配置内容----------------------------------------------
 #k8s apiserver地址,master高可用必须用到,需要虚拟Ip做负载均衡.
 #如果是测试环境,可填写第一台master机器的Ip,生产环境不推荐这样处理
 K8S_API_SERVER_IP="172.31.2.112"
 
 #k8s master机器ip,可多台
-K8S_MASTERS=(172.31.2.112)
+K8S_MASTERS=(172.31.2.112 172.31.2.113)
 #k8s master机器登录用户名,必须与IP一一对应
-K8S_MASTERS_USERNAME=(root)
+K8S_MASTERS_USERNAME=(root root)
 
 #k8s node机器ip,可多台
-K8S_NODES=(172.31.2.113)
+K8S_NODES=()
 #k8s node机器登录用户名,必须与IP一一对应
-K8S_NODES_USERNAME=(root)
+K8S_NODES_USERNAME=()
 
 #可视化管理界面访问的域名地址
 KUBOARD_HOST_NAME="kuboard.zhuhao.com"
 
 #--------------------------------------需配置内容结束-------------------------------------------
-#带颜色打印方法
-function print() {
-  echo -e "\033[32m$1\033[0m"
-}
+
 
 #--------------------------------------参数校验----------------------------------------------
 if [ -z "${K8S_API_SERVER_IP}" ]; then
@@ -61,7 +59,6 @@ if [ -z "${KUBOARD_HOST_NAME}" ]; then
 fi
 #--------------------------------------参数校验结束----------------------------------------------
 #--------------------------------------使用说明----------------------------------------------
-
 print "安装前准备:"
 print "1.执行本脚前需修改集群相关机器IP、账号等配置信息,且至少有一台master机器"
 print "2.本脚本仅支持目标集群机器为CentOs 7.7+系统"
@@ -92,45 +89,10 @@ n)
   ;;
 esac
 #--------------------------------------使用说明----------------------------------------------
-
-#校验任务状态
-function checkStatus() {
-  if [ $? -eq 1 ]; then
-    echo $1 出错
-    exit 1
-  fi
-}
-#初始化本地证书
-function privateInitLocalAuth() {
-  print "=======================本机生成签名,如无需修改签名存放地址,回车即可======================="
-  if [ ! -d ~/.ssh ]; then
-    sudo mkdir -p ~/.ssh
-  fi
-  if [ ! -f ~/.ssh/id_rsa.pub ]; then
-    ssh-keygen -t rsa
-  fi
-}
-#初始化远程服务器免密登录
-function initAllRemoteServersAuth() {
-  print "=======================配置各机器免密登录======================="
-  local index=0
-  for item in ${K8S_MASTERS[@]}; do
-    username=${K8S_MASTERS_USERNAME[${index}]}
-    print "拷贝公钥到${item}机器,询问时输入yes,然后请输入${username}的密码"
-    ssh-copy-id ${username}@${item}
-    let index+=1
-  done
-  let index=0
-  for item in ${K8S_NODES[@]}; do
-    username=${K8S_NODES_USERNAME[${index}]}
-    print "拷贝公钥到${item}机器,询问时输入yes,然后请输入${item}的密码"
-    ssh-copy-id ${username}@${item}
-    let index+=1
-  done
-}
 #生成机器地址配置文件(供ansible使用)
 function createEnvFile() {
   rm -rf ./configs/install_env
+  mkdir -p ./configs
   touch ./configs/install_env
   index=1
   echo "[master]" >>./configs/install_env
@@ -148,11 +110,10 @@ function createEnvFile() {
 #生成组件所需配置文件
 function createInitConfigFile() {
   rm -rf ./configs/install_config.yml
+  mkdir -p ./configs
   touch ./configs/install_config.yml
   #写入nfs主机配置信息
-  echo "#nfs的主机地址
-nfs:
-  server: ${K8S_MASTERS[0]}
+  echo "
 #k8s可视化界面的host地址
 kuboard:
   hosts: ${KUBOARD_HOST_NAME}
@@ -164,24 +125,6 @@ k8s:
       host: apiserver.k8s" >>./configs/install_config.yml
 }
 
-function installAnsible() {
-  print "=======================主控机安装ansible======================="
-  a=$(uname -a)
-  MAC="Darwin"
-  UBUNTU="ubuntu"
-  CENTOS="centos"
-  if [[ $a =~ $MAC ]]; then
-    print "安装ansiable,请输入本机密码"
-    sudo brew install ansible
-  elif [[ $a =~ $UBUNTU ]]; then
-    apt-get install software-properties-common
-    apt-add-repository ppa:ansible/ansible
-    apt-get install ansible
-  else
-    yum -y install epel-release
-    yum -y install ansible
-  fi
-}
 function installK8s() {
   print "=======================开始安装k8s集群======================="
   #基于ansible安装k8s集群
@@ -189,12 +132,15 @@ function installK8s() {
 }
 ##初始化本地证书
 privateInitLocalAuth
+##各机器配置免密登录
+initAllRemoteServersAuth "${K8S_MASTERS[*]}" "${K8S_MASTERS_USERNAME[*]}"
+initAllRemoteServersAuth "${K8S_NODES[*]}" "${K8S_NODES_USERNAME[*]}"
+
 #生成机器IP配置文件(ansible所需)
 createEnvFile
 #生成组件所需配置文件
 createInitConfigFile
-##各机器配置免密登录
-initAllRemoteServersAuth
+
 #安装ansiable
 installAnsible
 #安装k8s集群

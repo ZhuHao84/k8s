@@ -4,23 +4,19 @@
 - name: slave Join kubernetes cluster
   shell: "{{ k8s_join_token_script }} --control-plane --certificate-key {{ k8s_join_master_certs_scripts }}"
   ignore_errors: yes
-#- name: 拷贝k8s配置文件
-#  synchronize:
-#    src: /etc/kubernetes/admin.conf
-#    dest: /etc/kubernetes/admin.conf
-#  delegate_to: "{{ hostvars[groups['master'][0]]['ansible_default_ipv4']['address'] }}"
-#  ignore_errors: yes
 #
 #- name: 拷贝k8s配置文件
-#  synchronize:
-#    src: /etc/kubernetes/manifests/kube-apiserver.yaml
-#    dest: /etc/kubernetes/manifests/kube-apiserver.yaml
-#  delegate_to: "{{ hostvars[groups['master'][0]]['ansible_default_ipv4']['address'] }}"
-#  ignore_errors: yes
+#  copy: src=../configs/k8s-master-1/etc/kubernetes/admin.conf dest=/etc/kubernetes/admin.conf
+#- name: 拷贝k8s配置文件
+#  copy: src=../configs/k8s-master-1/etc/kubernetes/manifests/kube-apiserver.yaml dest=/etc/kubernetes/manifests/kube-apiserver.yaml
 #
 #- name: 设置k8s配置文件
 #  shell: '{{ item }}'
 #  with_items:
 #    - echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >>~/.bash_profile
 #    - source ~/.bash_profile
+#    - mkdir -p $HOME/.kube
+#    - sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+#    - sudo chown $(id -u):$(id -g) $HOME/.kube/config
 #  ignore_errors: yes
+#
