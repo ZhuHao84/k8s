@@ -6,20 +6,17 @@
 #k8s一键部署脚本使用说明
 ***
 ##目录结构
+目录/文件名称            |  用途
+---|--- 
+docs                   | 一些说明文档
+configs:               | 自动生成的临时配置文件保存目录
+roles:                 | 任务定义文件目录
+tasks:                 | 执行任务配置文件保存目录
+install.sh:            | 安装k8s集群脚本
+uninstall.sh:          | 卸载k8s的脚本
+component_install.sh:  | 安装其他组件的脚本(mysql、redis等)
+tools.sh               | 一些公用方法的封装
 
->configs: 自动生成的临时配置文件保存目录
-
->tasks: 任务配置文件保存目录
-
->roles:             单个任务执行文件目录
-
->install.sh:        安装k8s集群脚本
-
->uninstall.sh:      卸载脚本
-
->component_install.sh: 安装其他组件脚本(mysql、redis等)
-
->k8s_deploy_template.yml 常用K8s有状态负载服务部署配置文件说明
 ***
 ##使用方法
 * 安装K8s集群
