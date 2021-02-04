@@ -1,3 +1,8 @@
+# 下一版本迭代计划(更新时间不确定)
+> 安装组件时,支持自定义命名空间
+> 添加skywalking部署支持
+> 添加elk部署支持
+
 #k8s一键部署脚本使用说明
 ***
 ##目录结构
@@ -13,6 +18,8 @@
 >uninstall.sh:      卸载脚本
 
 >component_install.sh: 安装其他组件脚本(mysql、redis等)
+
+>k8s_deploy_template.yml 常用K8s有状态负载服务部署配置文件说明
 ***
 ##使用方法
 * 安装K8s集群
@@ -39,7 +46,3 @@
 >2.修改component_install.sh脚本中的配置
 
 >3.执行component_install.sh
-
-
-# 下一版本迭代计划
-> 安装组件时,支持自定义命名空间

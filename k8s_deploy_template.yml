@@ -1,0 +1,120 @@
+#本配置文件中 SERVER_NAME  和 NAMESPACE 需要根据实际服务统一修改
+apiVersion: apps/v1
+#无状态工作负载,实际实例化容器的工作计划
+kind: Deployment
+#元数据
+metadata:
+  #名称
+  name: SERVER_NAME
+  #名称空间
+  namespace: NAMESPACE
+  #标签,用来做匹配
+  labels:
+    app: SERVER_NAME
+    #在kuboard中分层次展示用的标签
+    k8s.kuboard.cn/layer: svc
+spec:
+  selector:
+    matchLabels:
+      app: SERVER_NAME
+  #计划启用的实例数量
+  replicas: 1
+  #从容器启动到应用正常提供服务时间,单位秒(用于平滑版本更新)
+  minReadySeconds: 60
+  #创建实例策略
+  strategy:
+    #RollingUpdate:滚动更新,创建新实例后才删除旧实例
+    type: RollingUpdate
+    rollingUpdate:
+      #更新时允许最大激增的容器数
+      maxSurge: 1
+      #更新时允许最大不可用容器数
+      maxUnavailable: 0
+  #创建pod实例的模板
+  template:
+    metadata:
+      labels:
+        app: SERVER_NAME
+        tier: SERVER_NAME
+    spec:
+      #pod中启用的docker容器数组
+      containers:
+        # 容器名称
+        - name: SERVER_NAME
+          #容器使用的镜像
+          image: registry.cn-shenzhen.aliyuncs.com/REPOSITORY/SERVER_NAME-VERSION:TIME
+          #是否从仓库拉取镜像,Always=每次都拉取
+          imagePullPolicy: Always
+          #容器暴露的端口
+          ports:
+            - containerPort: 8080
+              name: java
+          #容器的环境变量
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+          #配置容器的资源,可参考https://www.cnblogs.com/yehaifeng/p/9596399.html
+          resources:
+            #启动时请求资源
+            requests:
+              memory: "2048Mi"
+            #最大占用资源限制
+            limits:
+              memory: "2560Mi"
+      #配置pod中的hosts
+      hostAliases:
+        - hostnames:
+            - hdp-kafka-0-161.bthome.com
+          ip: 10.0.0.161
+        - hostnames:
+            - hdp-kafka-0-162.bthome.com
+          ip: 10.0.0.162
+        - hostnames:
+            - hdp-kafka-0-163.bthome.com
+          ip: 10.0.0.163
+---
+apiVersion: v1
+#集群DNS配置,对pod进行负载均衡
+kind: Service
+metadata:
+  name: SERVER_NAME
+  namespace: NAMESPACE
+  labels:
+    app: SERVER_NAME
+spec:
+  #DNS类型,
+  #ClusterIP:只分配集群内部IP,集群内部可以通过 名称空间.服务名 来访问,集群外部不能访问
+  #NodePort:对集群外部暴露端口(所有机器该端口都会被占用,如果端口冲突会出错)
+  type: ClusterIP
+  ports:
+    #k8s服务间访问的端口
+    - port: 8080
+      #pod容器内服务暴露的端口
+      targetPort: 8080
+  #通过标签匹配工作负载
+  selector:
+    app: SERVER_NAME
+---
+apiVersion: extensions/v1beta1
+#外部访问入口,对集群外部暴露域名访问
+kind: Ingress
+metadata:
+  name: SERVER_NAME
+  namespace: NAMESPACE
+spec:
+  rules:
+    #对外部暴露的host
+    - host: api.bthome.com
+      http:
+        paths:
+          #根据path转发到集群内部的service
+          - path: /wp
+            backend:
+              #内部service的名称,如果是不同名称空间,需要使用 NAMESPACE.SERVER_NAME 来访问
+              serviceName: NAMESPACE.SERVER_NAME
+              #内部service暴露的端口
+              servicePort: 8080
+          - path: /
+            backend:
+              serviceName: admin-web
+              servicePort: 80
